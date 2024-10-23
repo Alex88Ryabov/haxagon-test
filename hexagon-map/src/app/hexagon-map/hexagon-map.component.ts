@@ -24,7 +24,7 @@ export class HexagonMapComponent implements OnInit {
         })
       ],
       zoom: 6,
-      center: L.latLng([22.0, 38.0])
+      center: L.latLng([22.0, 38.0]) // red sea coordinates;
     };
   }
 
