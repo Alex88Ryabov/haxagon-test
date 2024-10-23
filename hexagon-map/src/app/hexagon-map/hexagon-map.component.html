@@ -1,6 +1,6 @@
 <div leaflet [leafletOptions]="options"
      (leafletMapReady)="onMapReady($event)"
-     (leafletMapZoom)="onMapZoom($event)"
-     (leafletMapZoomEnd)="onMapMoveEnd($event)"
+     (leafletMapZoom)="onMapZoom()"
+     (leafletMapZoomEnd)="onMapMoveEnd()"
      style="height: 100vh;">
 </div>
