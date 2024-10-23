@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import * as L from 'leaflet';
 import * as turf from '@turf/turf';
-import * as data from '../../assets/ data.json'
+import * as data from '../../assets/data.json'
 
 @Component({
   selector: 'app-hexagon-map',
@@ -22,8 +22,8 @@ export class HexagonMapComponent implements OnInit {
           attribution: '© OpenStreetMap contributors'
         })
       ],
-      zoom: 13,
-      center: L.latLng([51.505, -0.09]) // Координаты центра карты
+      zoom: 6,
+      center: L.latLng([22.0, 38.0]) // Координаты центра карты
     };
     this.hexagons = data;
     console.log(this.hexagons.features);
