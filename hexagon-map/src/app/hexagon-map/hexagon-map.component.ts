@@ -13,7 +13,8 @@ export class HexagonMapComponent implements OnInit {
   public options: any;
   private displayedHexagons: L.Polygon[] = [];
   private hexagons: IMap = data;
-  private hexagonRadius: number = 10000;
+  private hexagonRadius: number = 50000;
+  private allowedBounds: [number, number, number, number] = [30.0, 12.0, 50.0, 30.0];
 
   public ngOnInit(): void {
     this.options = {
@@ -42,23 +43,31 @@ export class HexagonMapComponent implements OnInit {
       bounds.getNorth()
     ];
 
+    // Генерация шестиугольной сетки на основе границ видимой карты
     const hexagons = turf.hexGrid(bbox, this.hexagonRadius, { units: 'meters' });
 
+    // Ограничивающая область, в пределах которой будут добавляться шестиугольники
+    const allowedArea = turf.bboxPolygon(this.allowedBounds); // Создание многоугольника из ограничивающего прямоугольника
+
     hexagons.features.forEach((hexagonFeature: any) => {
-      const hexCoords = hexagonFeature.geometry.coordinates[0].map((coord: number[]) => {
-        return [coord[1], coord[0]];
-      });
+      // Проверяем пересекается ли шестиугольник с разрешённой областью
+      if (turf.booleanIntersects(allowedArea, hexagonFeature)) {
+        const hexCoords = hexagonFeature.geometry.coordinates[0].map((coord: number[]) => {
+          return [coord[1], coord[0]]; // Leaflet требует [lat, lng]
+        });
 
-      const hexColor = this.getHexColorForFeature(hexagonFeature);
+        const hexColor = this.getHexColorForFeature(hexagonFeature);
 
-      const hexagon = L.polygon(hexCoords, {
-        color: hexColor,
-        fillColor: hexColor,
-        fillOpacity: 0.4,
-      });
+        const hexagon = L.polygon(hexCoords, {
+          color: hexColor,
+          fillColor: hexColor,
+          fillOpacity: 0.4,
+          weight: 1
+        });
 
-      this.displayedHexagons.push(hexagon);
-      hexagon.addTo(this.map);
+        this.displayedHexagons.push(hexagon);
+        hexagon.addTo(this.map);
+      }
     });
   }
 
@@ -73,32 +82,29 @@ export class HexagonMapComponent implements OnInit {
     return '#FFFFFF';
   }
 
-  public onMapZoom(): void {
-    const zoomLevel = this.map.getZoom();
+  private clearHexagons(): void {
     this.displayedHexagons.forEach(hexagon => {
-      const scale = this.calculateScale(zoomLevel);
-      hexagon.setStyle({
-        weight: scale
-      });
+      this.map.removeLayer(hexagon);
     });
+    this.displayedHexagons = [];
+  }
+
+  private updateHexagonRadiusBasedOnZoom(zoomLevel: number): void {
+    switch(!!zoomLevel) {
+      case zoomLevel < 7 : this.hexagonRadius = 50000;
+      break;
+      case zoomLevel >= 7 && zoomLevel <= 9 : this.hexagonRadius = 20000;
+      break;
+      case zoomLevel > 9 && zoomLevel <= 11: this.hexagonRadius = 5000;
+      break;
+      case zoomLevel > 11: this.hexagonRadius = 1000;
+      break;
+    }
   }
 
   public onMapMoveEnd(): void {
-    const bounds = this.map.getBounds();
-    this.displayedHexagons.forEach(hexagon => {
-      if (bounds.contains(hexagon.getBounds())) {
-        if (!this.map.hasLayer(hexagon)) {
-          hexagon.addTo(this.map);
-        }
-      } else {
-        if (this.map.hasLayer(hexagon)) {
-          this.map.removeLayer(hexagon);
-        }
-      }
-    });
-  }
-
-  private calculateScale(zoomLevel: number): number {
-    return Math.max(1, 10 - zoomLevel);
+    this.updateHexagonRadiusBasedOnZoom(this.map.getZoom()); // Обновляем радиус шестиугольников
+    this.clearHexagons(); // Удаляем существующие шестиугольники
+    this.createHexagonGrid(); // Пересоздаём сетку
   }
 }
